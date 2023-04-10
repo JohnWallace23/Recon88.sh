@@ -4,5 +4,5 @@ Making a script to automate reconnaissance. This script only works in Kali becau
 You will need to make a Shodan.io account and get your API key.
 Next you will need a target domain.
 Your command to execute this script will look like this:
-'sudo ./recon88.sh <URL> <API_KEY>
+'sudo ./recon88.sh URL API_KEY
 Example: sudo ./recon88.sh example.com kejjbdrkdrnbdnk
