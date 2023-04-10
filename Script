@@ -1,0 +1,95 @@
+#!/bin/bash
+
+set -e
+
+# Check if URL and API Key is provided as argument
+if [ $# -ne 2 ]
+  then
+    echo "Usage: ./recon88.sh <url> <shodan_api_key>"
+    exit 1
+fi
+
+URL=$1
+API_KEY=$2
+
+# Check if host command is installed, if not, install it
+if ! command -v host &> /dev/null
+then
+    echo "host command not found, installing..."
+    apt-get update && apt-get install -y host
+fi
+
+# Check if jq command is installed, if not, install it
+if ! command -v jq &> /dev/null
+then
+    echo "jq command not found, installing..."
+    apt-get update && apt-get install -y jq
+fi
+
+# Check if subfinder command is installed, if not, install it
+if ! command -v subfinder &> /dev/null
+then
+    echo "subfinder command not found, installing..."
+    apt-get update && apt install -y  subfinder
+    export PATH=$PATH:/usr/local/bin
+fi
+
+# Check if nikto command is installed, if not, install it
+if ! command -v nikto &> /dev/null
+then
+    echo "nikto command not found, installing..."
+    apt-get update && apt-get install -y nikto
+fi
+
+# Check if wpscan command is installed, if not, install it
+if ! command -v wpscan &> /dev/null
+then
+    echo "wpscan command not found, installing..."
+    apt-get update && apt-get install -y wpscan
+fi
+
+# Check if dirb command is installed, if not, install it
+if ! command -v dirb &> /dev/null
+then
+    echo "dirb command not found, installing..."
+    apt-get update && apt-get install -y dirb
+fi
+
+# Resolve URL to IP addresses using host command
+IP_ADDRESSES=$(host $URL | awk '/has address/ { print $4 }')
+
+# Check if IP addresses were successfully resolved, if not, exit with error
+if [ -z "$IP_ADDRESSES" ]
+then
+    echo "Error: could not resolve IP address for URL $URL"
+    exit 1
+fi
+
+# Creating new directory for findings
+mkdir recon_findings
+
+
+# Iterate over each IP address and run subsequent commands
+for IP_ADDRESS in $IP_ADDRESSES; do
+
+    # Run nmap scan and output results to console and file
+    echo "Nmap and Shodan result for IP address $IP_ADDRESS:"
+    nmap -A -sV $IP_ADDRESS | tee recon_findings/shodan_results.txt
+
+     # Search Shodan.io for information on the IP address and output results to a file
+    curl -s "https://api.shodan.io/shodan/host/$IP_ADDRESS?key=$API_KEY" | jq '.' >> recon_findings/shodan_results.txt
+
+    # Run dirb on the target URL and save the results to a file
+    dirb http://$URL /usr/share/wordlists/dirb/common.txt -o recon_findings/dirb_results.txt
+
+    # Run nikto on the target URL and save the results to a file
+    nikto -h $URL -output recon_findings/nikto_results.txt
+
+    # Run wpscan on the target URL and save the results to a file
+    wpscan --url $URL --output recon_findings/wpscan_results.txt || true
+
+    # Run sublist3r on the target domain and save the results to a file
+    subfinder -d $URL -v  -o recon_findings/subfinder_results.txt || true
+
+done
+
