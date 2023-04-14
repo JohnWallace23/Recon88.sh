@@ -88,7 +88,7 @@ for IP_ADDRESS in $IP_ADDRESSES; do
     # Run wpscan on the target URL and save the results to a file
     wpscan --url $URL --output recon_findings/wpscan_results.txt || true
 
-    # Run sublist3r on the target domain and save the results to a file
+    # Run subfinder on the target domain and save the results to a file
     subfinder -d $URL -v  -o recon_findings/subfinder_results.txt || true
 
 done
